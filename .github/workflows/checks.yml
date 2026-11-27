@@ -1,0 +1,49 @@
+name: Checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Parse with Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          $failed = $false
+          Get-ChildItem -Recurse -Include *.ps1, *.psd1 | ForEach-Object {
+              $errors = $null
+              [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$null, [ref]$errors) | Out-Null
+              foreach ($e in $errors) {
+                  Write-Host "::error file=$($_.Name),line=$($e.Extent.StartLineNumber)::$($e.Message)"
+                  $failed = $true
+              }
+          }
+          if ($failed) { exit 1 }
+
+      - name: PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          Install-Module PSScriptAnalyzer -Force -Scope CurrentUser
+          $results = Invoke-ScriptAnalyzer -Path . -Recurse -Settings ./PSScriptAnalyzerSettings.psd1
+          $results | Format-Table RuleName, Severity, ScriptName, Line, Message -AutoSize -Wrap
+          if ($results | Where-Object Severity -eq 'Error') { exit 1 }
+
+      - name: No network commands
+        shell: pwsh
+        run: |
+          $pattern = 'Invoke-WebRequest|Invoke-RestMethod|\biwr\b|\birm\b|Net\.WebClient|DownloadString|DownloadFile|Start-BitsTransfer|Net\.Http|Net\.Sockets|curl|wget'
+          $hits = Get-ChildItem -Recurse -Include *.ps1, *.bat, *.cmd, *.psm1 |
+              Select-String -Pattern $pattern
+          if ($hits) {
+              $hits | ForEach-Object { Write-Host "::error file=$($_.Filename),line=$($_.LineNumber)::Network command found: $($_.Line.Trim())" }
+              exit 1
+          }
+          Write-Host 'No network commands found.'
