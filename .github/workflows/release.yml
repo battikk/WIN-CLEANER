@@ -1,8 +1,16 @@
 name: Release
 
-# Pushing a tag such as v1.0.0 builds WinCleaner.zip and publishes a GitHub release
-# with its SHA256 hash. The zip holds only what users need: WinCleaner.bat, app/ and LICENSE.
+# Builds WinCleaner.zip and publishes a GitHub release with its SHA256 hash.
+# The zip holds only what users need: WinCleaner.bat, app/ and LICENSE.
+#
+# Start it from the Actions tab: Release > Run workflow > enter a version such as v1.0.0.
+# Pushing a tag such as v1.0.0 also works.
 on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish, for example v1.0.0'
+        required: true
   push:
     tags: ['v*']
 
@@ -27,7 +35,11 @@ jobs:
       - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version || github.ref_name }}
         run: |
+          if ! echo "$VERSION" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::Version must look like v1.0.0"; exit 1
+          fi
           HASH=$(cat dist/sha256.txt)
           cat > notes.md <<NOTES
           ## Download / İndir
@@ -46,4 +58,4 @@ jobs:
           Zip yalnızca düz PowerShell, bir .bat başlatıcı ve lisans içerir. Exe yok, internet erişimi yok.
           NOTES
           sed -i 's/^          //' notes.md
-          gh release create "$GITHUB_REF_NAME" dist/WinCleaner.zip --title "WinCleaner $GITHUB_REF_NAME" --notes-file notes.md
+          gh release create "$VERSION" dist/WinCleaner.zip --target "$GITHUB_SHA" --title "WinCleaner $VERSION" --notes-file notes.md
