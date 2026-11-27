@@ -1,10 +1,8 @@
 @echo off
-rem Restarts itself as administrator if needed / Gerekirse yonetici olarak yeniden baslar
+rem Opens the WinCleaner window as administrator / WinCleaner penceresini yonetici olarak acar
 net session >nul 2>&1
 if %errorlevel% neq 0 (
     powershell -NoProfile -Command "Start-Process -FilePath '%~f0' -Verb RunAs"
     exit /b
 )
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0WinCleaner.ps1"
-echo.
-pause
+start "" powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "%~dp0WinCleaner.GUI.ps1"

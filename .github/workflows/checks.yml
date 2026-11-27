@@ -58,3 +58,18 @@ jobs:
           $unexpected = @($Error | Where-Object { $_.FullyQualifiedErrorId -notmatch $expected })
           $unexpected | ForEach-Object { Write-Host "::error::$($_.FullyQualifiedErrorId): $($_.Exception.Message) at $($_.InvocationInfo.PositionMessage)" }
           if ($unexpected.Count -gt 0) { exit 1 }
+
+      - name: Window self-test on Windows PowerShell 5.1 (scan only, window not shown)
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Path screenshots -Force | Out-Null
+          & .\WinCleaner.GUI.ps1 -SelfTest -ScreenshotFolder (Resolve-Path screenshots)
+          if (-not $?) { exit 1 }
+
+      - name: Upload window screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: screenshots/
+          if-no-files-found: ignore

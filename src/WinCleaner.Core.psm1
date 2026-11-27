@@ -173,6 +173,8 @@ function Set-WcLanguage([string]$Language) {
     $script:Lang = if ($Language -eq 'tr') { 'tr' } else { 'en' }
 }
 
+function Get-WcLanguage { $script:Lang }
+
 function Get-WcText([string]$Key) { $script:Texts[$script:Lang][$Key] }
 
 function Get-WcTargetName($Target) { if ($script:Lang -eq 'tr') { $Target.Tr } else { $Target.En } }
@@ -407,6 +409,6 @@ function Unregister-WcSchedule {
     Unregister-ScheduledTask -TaskName $script:TaskName -Confirm:$false -ErrorAction SilentlyContinue
 }
 
-Export-ModuleMember -Function Set-WcLanguage, Get-WcText, Get-WcTargetName, Test-WcAdmin, Format-WcSize,
+Export-ModuleMember -Function Set-WcLanguage, Get-WcLanguage, Get-WcText, Get-WcTargetName, Test-WcAdmin, Format-WcSize,
     Get-WcTarget, Get-WcStatus, Measure-WcTarget, Clear-WcTarget, Get-WcSettings, Save-WcSettings,
     Get-WcSchedule, Register-WcSchedule, Unregister-WcSchedule

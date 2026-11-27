@@ -8,14 +8,16 @@
 - **İnternet erişimi yok, veri toplama yok.** Script hiçbir yere bağlanmaz. Koda bir ağ komutu eklenirse otomatik kontrol hata verir.
 - **Önce tarar, onay vermeden silmez.** Hiçbir şey silinmeden önce her alanın ne kadar yer kapladığını görürsün.
 
-> Durum: erken sürüm. Pencereli arayüz yolda (bkz. [Yol haritası](#yol-haritası)).
-
 ## Kullanım
 
 1. [Releases](../../releases) sayfasından son zip'i indir ve ayıkla.
-2. `WinCleaner.bat` dosyasına çift tıkla ve yönetici iznini onayla.
-3. Alanların ve boyutların listelendiği tabloyu incele.
-4. Temizlemek için `E`, hiçbir şey silmeden çıkmak için `H` yaz.
+2. `WinCleaner.bat` dosyasına çift tıkla ve yönetici iznini onayla. WinCleaner penceresi açılır.
+3. **Tara** düğmesine bas. Tarama hiçbir şeyi silmez.
+4. Temizlemek istemediğin alanların işaretini kaldır, **Temizle** düğmesine bas ve onayla.
+
+Pencere, Windows'un açık ya da koyu temasına uyar. **Haftalık otomatik temizlik** kutusunu işaretlersen aynı seçimlerle her Pazar çalışır.
+
+Konsolu mu tercih edersin? `WinCleaner-Console.bat` bir tablo gösterir ve temizlemeden önce `E/H` sorar.
 
 Dil, Windows'un görüntü diline göre seçilir (Türkçe ya da İngilizce).
 
@@ -85,7 +87,7 @@ Windows 10 veya 11 ve içinde hazır gelen Windows PowerShell 5.1. Ek kurulum ge
 - [x] Yeni alanlar: Brave, Opera, Vivaldi, Discord, Teams, ekran kartı önbellekleri ve kurulum artıkları, Windows günlükleri
 - [x] İsteğe bağlı haftalık otomatik temizlik
 - [x] Gelişmiş bölüm (varsayılan kapalı)
-- [ ] Onay kutuları, ilerleme çubuğu, açık/koyu tema ile pencereli arayüz
+- [x] Onay kutuları, ilerleme çubuğu, açık/koyu tema ile pencereli arayüz
 
 ## Lisans
 
