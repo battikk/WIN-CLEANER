@@ -45,7 +45,7 @@ $script:Texts = @{
         Disabled         = 'Ayarlarda kapalı'
         Unknown          = 'bilinmiyor'
         Advanced         = 'Gelişmiş'
-        ScheduleAdded    = 'Haftalık temizlik eklendi: her Pazar 12:00 (bilgisayar kapalıysa ilk açılışta).'
+        ScheduleAdded    = 'Haftalık temizlik eklendi: her {0} {1} (bilgisayar kapalıysa ilk açılışta). Pencere kapalıyken de çalışır.'
         ScheduleRemoved  = 'Haftalık temizlik kaldırıldı.'
         ScheduleNone     = 'Haftalık temizlik zaten kurulu değil.'
         ScheduleNeedsAdmin = 'Haftalık temizliği kurmak için yönetici olarak çalıştırın.'
@@ -75,7 +75,7 @@ $script:Texts = @{
         Disabled         = 'Disabled in settings'
         Unknown          = 'unknown'
         Advanced         = 'Advanced'
-        ScheduleAdded    = 'Weekly cleanup added: every Sunday 12:00 (or at next start if the PC was off).'
+        ScheduleAdded    = 'Weekly cleanup added: every {0} at {1} (or at next start if the PC was off). It runs without opening WinCleaner.'
         ScheduleRemoved  = 'Weekly cleanup removed.'
         ScheduleNone     = 'Weekly cleanup is not installed.'
         ScheduleNeedsAdmin = 'Run as administrator to install the weekly cleanup.'
@@ -176,6 +176,21 @@ function Set-WcLanguage([string]$Language) {
 function Get-WcLanguage { $script:Lang }
 
 function Get-WcText([string]$Key) { $script:Texts[$script:Lang][$Key] }
+
+function Get-WcDayName([string]$Day) {
+    $culture = if ($script:Lang -eq 'tr') { 'tr-TR' } else { 'en-US' }
+    ([Globalization.CultureInfo]::GetCultureInfo($culture)).DateTimeFormat.GetDayName([DayOfWeek]$Day)
+}
+
+<#
+.SYNOPSIS
+    Folder for settings, log and the scheduled copy: %LOCALAPPDATA%\WinCleaner
+#>
+function Get-WcDataPath {
+    $path = Join-Path $env:LOCALAPPDATA 'WinCleaner'
+    if (-not (Test-Path -LiteralPath $path)) { New-Item -ItemType Directory -Path $path -Force | Out-Null }
+    $path
+}
 
 function Get-WcTargetName($Target) { if ($script:Lang -eq 'tr') { $Target.Tr } else { $Target.En } }
 
@@ -366,16 +381,20 @@ function Clear-WcTarget {
 #>
 function Get-WcSettings {
     param([string]$Path)
-    $settings = [pscustomobject]@{ Language = ''; DisabledAreas = @(); Advanced = $false }
+    $settings = [pscustomobject]@{
+        Language = ''; DisabledAreas = @(); Advanced = $false; ScheduleDay = 'Sunday'; ScheduleTime = '12:00'
+    }
     if ($Path -and (Test-Path -LiteralPath $Path)) {
         try {
             $json = Get-Content -LiteralPath $Path -Raw -Encoding UTF8 | ConvertFrom-Json
-            foreach ($p in 'Language', 'DisabledAreas', 'Advanced') {
+            foreach ($p in 'Language', 'DisabledAreas', 'Advanced', 'ScheduleDay', 'ScheduleTime') {
                 if ($json.PSObject.Properties.Name -contains $p) { $settings.$p = $json.$p }
             }
             $settings.DisabledAreas = @($settings.DisabledAreas)
         } catch { $null = $_ }
     }
+    if ([Enum]::GetNames([DayOfWeek]) -notcontains $settings.ScheduleDay) { $settings.ScheduleDay = 'Sunday' }
+    if ($settings.ScheduleTime -notmatch '^([01]\d|2[0-3]):[0-5]\d$') { $settings.ScheduleTime = '12:00' }
     $settings
 }
 
@@ -393,10 +412,25 @@ function Get-WcSchedule {
 }
 
 function Register-WcSchedule {
-    param([Parameter(Mandatory)][string]$ScriptPath)
-    $arguments = '-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "{0}" -Yes -Quiet' -f $ScriptPath
+    param(
+        # Folder that holds WinCleaner.ps1 and this module
+        [Parameter(Mandatory)][string]$SourceFolder,
+        [ValidateSet('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday')]
+        [string]$Day = 'Sunday',
+        [ValidatePattern('^([01]\d|2[0-3]):[0-5]\d$')][string]$Time = '12:00'
+    )
+    # Copy the scripts to a fixed place, so the weekly run keeps working
+    # even if the downloaded folder is moved or deleted.
+    $target = Join-Path (Get-WcDataPath) 'app'
+    New-Item -ItemType Directory -Path $target -Force | Out-Null
+    foreach ($file in 'WinCleaner.ps1', 'WinCleaner.Core.psm1') {
+        Copy-Item -LiteralPath (Join-Path $SourceFolder $file) -Destination $target -Force
+    }
+    $scriptPath = Join-Path $target 'WinCleaner.ps1'
+
+    $arguments = '-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "{0}" -Yes -Quiet' -f $scriptPath
     $action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument $arguments
-    $trigger = New-ScheduledTaskTrigger -Weekly -DaysOfWeek Sunday -At '12:00'
+    $trigger = New-ScheduledTaskTrigger -Weekly -DaysOfWeek $Day -At $Time
     $principal = New-ScheduledTaskPrincipal -UserId ([Security.Principal.WindowsIdentity]::GetCurrent().Name) `
         -LogonType Interactive -RunLevel Highest
     $taskSettings = New-ScheduledTaskSettingsSet -StartWhenAvailable -DontStopIfGoingOnBatteries `
@@ -407,8 +441,9 @@ function Register-WcSchedule {
 
 function Unregister-WcSchedule {
     Unregister-ScheduledTask -TaskName $script:TaskName -Confirm:$false -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath (Join-Path (Get-WcDataPath) 'app') -Recurse -Force -ErrorAction SilentlyContinue
 }
 
-Export-ModuleMember -Function Set-WcLanguage, Get-WcLanguage, Get-WcText, Get-WcTargetName, Test-WcAdmin, Format-WcSize,
+Export-ModuleMember -Function Set-WcLanguage, Get-WcLanguage, Get-WcDayName, Get-WcDataPath, Get-WcText, Get-WcTargetName, Test-WcAdmin, Format-WcSize,
     Get-WcTarget, Get-WcStatus, Measure-WcTarget, Clear-WcTarget, Get-WcSettings, Save-WcSettings,
     Get-WcSchedule, Register-WcSchedule, Unregister-WcSchedule

@@ -15,9 +15,13 @@
 3. **Tara** düğmesine bas. Tarama hiçbir şeyi silmez.
 4. Temizlemek istemediğin alanların işaretini kaldır, **Temizle** düğmesine bas ve onayla.
 
-Pencere, Windows'un açık ya da koyu temasına uyar. **Haftalık otomatik temizlik** kutusunu işaretlersen aynı seçimlerle her Pazar çalışır.
+Pencere, Windows'un açık ya da koyu temasına uyar.
 
-Konsolu mu tercih edersin? `WinCleaner-Console.bat` bir tablo gösterir ve temizlemeden önce `E/H` sorar.
+### Haftalık otomatik temizlik
+
+**Haftalık otomatik temizlik** kutusunu işaretle ve gün ile saati seç. Hepsi bu: Windows Görev Zamanlayıcı temizliği aynı seçimlerle arka planda, WinCleaner'ı açmana gerek kalmadan çalıştırır. Bilgisayar o saatte kapalıysa bir sonraki açılışta çalışır. İndirdiğin klasörü sonradan taşıyabilir ya da silebilirsin; haftalık temizlik `%LOCALAPPDATA%\WinCleaner` içindeki kendi kopyasını kullanır.
+
+Konsolu mu tercih edersin? `app\WinCleaner-Console.bat` bir tablo gösterir ve temizlemeden önce `E/H` sorar.
 
 Dil, Windows'un görüntü diline göre seçilir (Türkçe ya da İngilizce).
 
@@ -29,14 +33,14 @@ Dil, Windows'un görüntü diline göre seçilir (Türkçe ya da İngilizce).
 | `-Evet` (`-Yes`) | Onay sormadan temizler |
 | `-Advanced` | Gelişmiş alanları da çalıştırır (Windows bileşen deposu temizliği, uzun sürer) |
 | `-Language tr` / `-Language en` | Dili zorla seçer |
-| `-InstallSchedule` | Haftalık temizlik ekler: her Pazar 12:00 (bilgisayar kapalıysa ilk açılışta) |
+| `-InstallSchedule` | Haftalık temizliği ekler (varsayılan Pazar 12:00, pencereden değiştirilebilir) |
 | `-RemoveSchedule` | Haftalık temizliği kaldırır |
 
-Örnek: `.\WinCleaner.ps1 -Tara`
+Örnek: `.\app\WinCleaner.ps1 -Tara`
 
 ### Ayarlar
 
-Alanları kapatmak ya da varsayılanları değiştirmek için `settings.example.json` dosyasını `settings.json` adıyla kopyala. Alan kimlikleri `src/WinCleaner.Core.psm1` dosyasında yazar.
+Ayarlar ve günlük, indirme klasöründe değil `%LOCALAPPDATA%\WinCleaner` içinde tutulur. Pencere seçimlerini oraya kendiliğinden kaydeder. Elle düzenlemek istersen `settings.json` dosyası `Language`, `DisabledAreas` (alan kimlikleri `app/WinCleaner.Core.psm1` içinde), `ScheduleDay` ve `ScheduleTime` değerlerini kabul eder.
 
 ## Neler temizlenir
 
@@ -65,7 +69,7 @@ Belgeler, İndirilenler, Masaüstü, şifreler, çerezler, tarayıcı geçmişi,
 - Kullanımdaki dosyalar zorla silinmez, atlanır.
 - Junction ve sembolik bağlantıların içine girilmez, hedef klasörlerin dışına çıkılamaz.
 - Sürücü kökleri ve profil klasörleri sabit bir yasak listesinde.
-- Her temizlik script'in yanındaki `WinCleaner.log` dosyasına kaydedilir.
+- Her temizlik `%LOCALAPPDATA%\WinCleaner\WinCleaner.log` dosyasına kaydedilir.
 
 ## İndirdiğin dosyayı doğrula
 

@@ -26,7 +26,8 @@
     tr or en. Defaults to the Windows display language.
 
 .PARAMETER InstallSchedule
-    Adds a weekly cleanup task (Sundays 12:00) for the current user.
+    Adds a weekly cleanup task for the current user. Day and time come from
+    settings (default Sunday 12:00) and can be changed in the window.
 
 .PARAMETER RemoveSchedule
     Removes the weekly cleanup task.
@@ -46,10 +47,11 @@ param(
 )
 
 $ErrorActionPreference = 'Continue'
-Import-Module (Join-Path $PSScriptRoot 'src\WinCleaner.Core.psm1') -Force
+Import-Module (Join-Path $PSScriptRoot 'WinCleaner.Core.psm1') -Force
 
-$SettingsPath = Join-Path $PSScriptRoot 'settings.json'
-$LogPath = Join-Path $PSScriptRoot 'WinCleaner.log'
+# Settings and log live in %LOCALAPPDATA%\WinCleaner, shared with the window and the weekly run
+$SettingsPath = Join-Path (Get-WcDataPath) 'settings.json'
+$LogPath = Join-Path (Get-WcDataPath) 'WinCleaner.log'
 $Settings = Get-WcSettings -Path $SettingsPath
 if (-not $Language) { $Language = $Settings.Language }
 Set-WcLanguage $Language
@@ -70,8 +72,8 @@ function Add-LogLine([string]$Text) {
 if ($InstallSchedule -or $RemoveSchedule) {
     if (-not (Test-WcAdmin)) { Write-Warning (Get-WcText 'ScheduleNeedsAdmin'); return }
     if ($InstallSchedule) {
-        Register-WcSchedule -ScriptPath $PSCommandPath
-        Show (Get-WcText 'ScheduleAdded') 'Green'
+        Register-WcSchedule -SourceFolder $PSScriptRoot -Day $Settings.ScheduleDay -Time $Settings.ScheduleTime
+        Show ((Get-WcText 'ScheduleAdded') -f (Get-WcDayName $Settings.ScheduleDay), $Settings.ScheduleTime) 'Green'
     } elseif (Get-WcSchedule) {
         Unregister-WcSchedule
         Show (Get-WcText 'ScheduleRemoved') 'Green'
