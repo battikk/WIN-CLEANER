@@ -1,0 +1,49 @@
+name: Release
+
+# Pushing a tag such as v1.0.0 builds WinCleaner.zip and publishes a GitHub release
+# with its SHA256 hash. The zip holds only what users need: WinCleaner.bat, app/ and LICENSE.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build zip
+        run: |
+          mkdir -p dist/WinCleaner
+          cp WinCleaner.bat LICENSE dist/WinCleaner/
+          cp -r app dist/WinCleaner/app
+          cd dist && zip -r -X WinCleaner.zip WinCleaner
+          sha256sum WinCleaner.zip | cut -d' ' -f1 > sha256.txt
+          echo "SHA256: $(cat sha256.txt)"
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          HASH=$(cat dist/sha256.txt)
+          cat > notes.md <<NOTES
+          ## Download / İndir
+
+          **WinCleaner.zip** → extract, double-click \`WinCleaner.bat\`. / Ayıkla, \`WinCleaner.bat\` dosyasına çift tıkla.
+
+          ## Verify / Doğrula
+
+          SHA256: \`$HASH\`
+
+          \`\`\`powershell
+          Get-FileHash .\\WinCleaner.zip -Algorithm SHA256
+          \`\`\`
+
+          The zip contains only plain PowerShell, a .bat launcher and the license. No .exe, no network access.
+          Zip yalnızca düz PowerShell, bir .bat başlatıcı ve lisans içerir. Exe yok, internet erişimi yok.
+          NOTES
+          sed -i 's/^          //' notes.md
+          gh release create "$GITHUB_REF_NAME" dist/WinCleaner.zip --title "WinCleaner $GITHUB_REF_NAME" --notes-file notes.md

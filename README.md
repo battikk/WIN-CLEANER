@@ -15,9 +15,13 @@
 3. Press **Scan**. Nothing is deleted while scanning.
 4. Untick any area you want to keep, then press **Clean** and confirm.
 
-The window follows your Windows light or dark theme. Tick **Weekly automatic cleanup** to run it every Sunday with the same choices.
+The window follows your Windows light or dark theme.
 
-Prefer the console? Use `WinCleaner-Console.bat`: it shows a table and asks `Y/N` before cleaning.
+### Weekly automatic cleanup
+
+Tick **Weekly automatic cleanup** and pick a day and time. That is all: Windows Task Scheduler then runs the cleanup in the background with the same choices, without opening WinCleaner. If the PC is off at that time, it runs at the next start. You can move or delete the downloaded folder afterwards; the weekly run uses its own copy in `%LOCALAPPDATA%\WinCleaner`.
+
+Prefer the console? Use `app\WinCleaner-Console.bat`: it shows a table and asks `Y/N` before cleaning.
 
 The language follows your Windows display language (Turkish or English).
 
@@ -29,14 +33,14 @@ The language follows your Windows display language (Turkish or English).
 | `-Yes` | Clean without asking |
 | `-Advanced` | Also run advanced areas (Windows component store cleanup, slow) |
 | `-Language tr` / `-Language en` | Force a language |
-| `-InstallSchedule` | Add a weekly cleanup, Sundays 12:00 (runs at next start if the PC was off) |
+| `-InstallSchedule` | Add the weekly cleanup (default Sunday 12:00, change it in the window) |
 | `-RemoveSchedule` | Remove the weekly cleanup |
 
-Example: `.\WinCleaner.ps1 -Scan -Language en`
+Example: `.\app\WinCleaner.ps1 -Scan -Language en`
 
 ### Settings
 
-Copy `settings.example.json` to `settings.json` to turn areas off or set defaults. Area ids are listed in `src/WinCleaner.Core.psm1`.
+Settings and the log are kept in `%LOCALAPPDATA%\WinCleaner`, not in the download folder. The window saves your choices there automatically. To edit by hand, `settings.json` accepts `Language`, `DisabledAreas` (area ids from `app/WinCleaner.Core.psm1`), `ScheduleDay` and `ScheduleTime`.
 
 ## What gets cleaned
 
@@ -65,7 +69,7 @@ Documents, Downloads, Desktop, passwords, cookies, browser history, bookmarks, i
 - Files in use are skipped, never forced.
 - Junctions and symbolic links are never followed, so nothing outside the target folders can be reached.
 - Drive roots and profile folders are on a hard-coded block list.
-- Every cleanup is logged to `WinCleaner.log` next to the script.
+- Every cleanup is logged to `%LOCALAPPDATA%\WinCleaner\WinCleaner.log`.
 
 ## Verify a download
 

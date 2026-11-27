@@ -22,11 +22,12 @@ param(
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase
 
-$ModulePath = Join-Path $PSScriptRoot 'src\WinCleaner.Core.psm1'
-$ConsoleScript = Join-Path $PSScriptRoot 'WinCleaner.ps1'
-$SettingsPath = Join-Path $PSScriptRoot 'settings.json'
-$LogPath = Join-Path $PSScriptRoot 'WinCleaner.log'
+$ModulePath = Join-Path $PSScriptRoot 'WinCleaner.Core.psm1'
 Import-Module $ModulePath -Force
+
+# Settings and log live in %LOCALAPPDATA%\WinCleaner, shared with the console and the weekly run
+$SettingsPath = Join-Path (Get-WcDataPath) 'settings.json'
+$LogPath = Join-Path (Get-WcDataPath) 'WinCleaner.log'
 
 $Settings = Get-WcSettings -Path $SettingsPath
 Set-WcLanguage $Settings.Language
@@ -40,7 +41,8 @@ $UiTexts = @{
         NotAdmin     = 'Yönetici olarak çalışmıyor, bazı alanlar atlanacak. Tümü için WinCleaner.bat ile açın.'
         Scan         = 'Tara'
         Clean        = 'Temizle'
-        Weekly       = 'Haftalık otomatik temizlik (Pazar 12:00)'
+        Weekly       = 'Haftalık otomatik temizlik'
+        WeeklyNote   = 'Pencere kapalıyken de arka planda kendiliğinden çalışır.'
         ShowAdvanced = 'Gelişmiş alanları göster'
         Start        = 'Başlamak için Tara düğmesine bas.'
         StartDetail  = 'Tarama hiçbir şeyi silmez.'
@@ -62,7 +64,8 @@ $UiTexts = @{
         NotAdmin     = 'Not running as administrator, some areas will be skipped. Open with WinCleaner.bat for all.'
         Scan         = 'Scan'
         Clean        = 'Clean'
-        Weekly       = 'Weekly automatic cleanup (Sunday 12:00)'
+        Weekly       = 'Weekly automatic cleanup'
+        WeeklyNote   = 'Runs in the background on its own, even when this window is closed.'
         ShowAdvanced = 'Show advanced areas'
         Start        = 'Press Scan to start.'
         StartDetail  = 'Scanning never deletes anything.'
@@ -121,6 +124,63 @@ function T([string]$Key) { $UiTexts[(Get-WcLanguage)][$Key] }
       <Setter Property="Background" Value="{DynamicResource Card}"/>
       <Setter Property="Foreground" Value="{DynamicResource Fg}"/>
     </Style>
+    <Style TargetType="ComboBox">
+      <Setter Property="Foreground" Value="{DynamicResource Fg}"/>
+      <Setter Property="Height" Value="30"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ComboBox">
+            <Grid>
+              <ToggleButton Focusable="False" ClickMode="Press"
+                  IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+                <ToggleButton.Template>
+                  <ControlTemplate TargetType="ToggleButton">
+                    <Border Background="{DynamicResource Card}" BorderBrush="{DynamicResource Line}"
+                            BorderThickness="1" CornerRadius="6">
+                      <Path HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0"
+                            Data="M0,0 L4,4 L8,0" Stroke="{DynamicResource Muted}" StrokeThickness="1.5"/>
+                    </Border>
+                  </ControlTemplate>
+                </ToggleButton.Template>
+              </ToggleButton>
+              <ContentPresenter IsHitTestVisible="False" Margin="10,0,26,0" VerticalAlignment="Center"
+                  Content="{TemplateBinding SelectionBoxItem}"
+                  ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"/>
+              <Popup x:Name="PART_Popup" IsOpen="{TemplateBinding IsDropDownOpen}" Placement="Bottom"
+                     AllowsTransparency="True" Focusable="False">
+                <Border Background="{DynamicResource Card}" BorderBrush="{DynamicResource Line}" BorderThickness="1"
+                        CornerRadius="6" Margin="0,4,0,0" Padding="3" MaxHeight="260"
+                        MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}">
+                  <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <ItemsPresenter/>
+                  </ScrollViewer>
+                </Border>
+              </Popup>
+            </Grid>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+    <Style TargetType="ComboBoxItem">
+      <Setter Property="Foreground" Value="{DynamicResource Fg}"/>
+      <Setter Property="Padding" Value="9,5"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ComboBoxItem">
+            <Border x:Name="Bd" Background="Transparent" Padding="{TemplateBinding Padding}" CornerRadius="4">
+              <ContentPresenter/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsHighlighted" Value="True">
+                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Line}"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
   </Window.Resources>
   <Grid Margin="22">
     <Grid.RowDefinitions>
@@ -159,8 +219,13 @@ function T([string]$Key) { $UiTexts[(Get-WcLanguage)][$Key] }
           <Button x:Name="CleanBtn" Style="{StaticResource Btn}" IsEnabled="False"/>
         </StackPanel>
         <StackPanel VerticalAlignment="Center">
-          <CheckBox x:Name="WeeklyBox" Foreground="{DynamicResource Fg}"/>
-          <CheckBox x:Name="AdvancedBox" Foreground="{DynamicResource Fg}" Margin="0,6,0,0"/>
+          <StackPanel Orientation="Horizontal">
+            <CheckBox x:Name="WeeklyBox" Foreground="{DynamicResource Fg}" VerticalAlignment="Center"/>
+            <ComboBox x:Name="DayBox" Width="112" Margin="10,0,6,0"/>
+            <ComboBox x:Name="TimeBox" Width="80"/>
+          </StackPanel>
+          <TextBlock x:Name="WeeklyNote" Foreground="{DynamicResource Muted}" FontSize="11" Margin="20,3,0,0"/>
+          <CheckBox x:Name="AdvancedBox" Foreground="{DynamicResource Fg}" Margin="0,8,0,0"/>
         </StackPanel>
       </DockPanel>
     </StackPanel>
@@ -171,7 +236,7 @@ function T([string]$Key) { $UiTexts[(Get-WcLanguage)][$Key] }
 $Window = [Windows.Markup.XamlReader]::Load((New-Object System.Xml.XmlNodeReader $Xaml))
 $Ui = @{}
 foreach ($name in 'LangBox', 'Subtitle', 'AdminNote', 'Rows', 'Summary', 'Detail', 'Progress',
-                  'ScanBtn', 'CleanBtn', 'WeeklyBox', 'AdvancedBox') {
+                  'ScanBtn', 'CleanBtn', 'WeeklyBox', 'DayBox', 'TimeBox', 'WeeklyNote', 'AdvancedBox') {
     $Ui[$name] = $Window.FindName($name)
 }
 
@@ -253,7 +318,7 @@ foreach ($t in Get-WcTarget -Advanced) { $Rows[$t.Id] = New-AreaRow $t }
 # ---------------------------------------------------------------------------
 # State and rendering
 # ---------------------------------------------------------------------------
-$State = @{ Phase = 'start'; Busy = $false; TotalFreed = [long]0; Skipped = 0; Error = '' }
+$State = @{ Phase = 'start'; Busy = $false; TotalFreed = [long]0; Skipped = 0; Error = ''; Init = $true }
 
 function Update-View {
     $Ui.Subtitle.Text = T 'Subtitle'
@@ -262,6 +327,8 @@ function Update-View {
     $Ui.ScanBtn.Content = T 'Scan'
     $Ui.CleanBtn.Content = T 'Clean'
     $Ui.WeeklyBox.Content = T 'Weekly'
+    $Ui.WeeklyNote.Text = T 'WeeklyNote'
+    foreach ($item in $Ui.DayBox.Items) { $item.Content = Get-WcDayName $item.Tag }
     $Ui.AdvancedBox.Content = T 'ShowAdvanced'
 
     foreach ($row in $Rows.Values) {
@@ -487,25 +554,38 @@ $Ui.LangBox.Add_SelectionChanged({
     }
 })
 
-$Ui.WeeklyBox.Add_Click({
-    $want = [bool]$Ui.WeeklyBox.IsChecked
+function Set-Weekly([bool]$Enabled) {
     if (-not (Test-WcAdmin)) {
-        $Ui.WeeklyBox.IsChecked = -not $want
         [void][Windows.MessageBox]::Show($Window, (T 'AdminNeeded'), 'WinCleaner')
-        return
+        return $false
     }
     try {
-        if ($want) {
-            Save-Choice
-            Register-WcSchedule -ScriptPath $ConsoleScript
+        Save-Choice
+        if ($Enabled) {
+            Register-WcSchedule -SourceFolder $PSScriptRoot -Day $Settings.ScheduleDay -Time $Settings.ScheduleTime
         } else {
             Unregister-WcSchedule
         }
+        return $true
     } catch {
-        $Ui.WeeklyBox.IsChecked = -not $want
         [void][Windows.MessageBox]::Show($Window, ((T 'Error') -f $_.Exception.Message), 'WinCleaner')
+        return $false
     }
+}
+
+$Ui.WeeklyBox.Add_Click({
+    $want = [bool]$Ui.WeeklyBox.IsChecked
+    if (-not (Set-Weekly $want)) { $Ui.WeeklyBox.IsChecked = -not $want }
 })
+
+$OnScheduleChanged = {
+    if ($State.Init) { return }
+    if ($Ui.DayBox.SelectedItem) { $Settings.ScheduleDay = [string]$Ui.DayBox.SelectedItem.Tag }
+    if ($Ui.TimeBox.SelectedItem) { $Settings.ScheduleTime = [string]$Ui.TimeBox.SelectedItem.Tag }
+    if ($Ui.WeeklyBox.IsChecked) { [void](Set-Weekly $true) } else { Save-Choice }
+}
+$Ui.DayBox.Add_SelectionChanged($OnScheduleChanged)
+$Ui.TimeBox.Add_SelectionChanged($OnScheduleChanged)
 
 $Window.Add_Closing({
     if ($Job.PowerShell) { $Timer.Stop(); $Job.PowerShell.Stop(); $Job.PowerShell.Dispose() }
@@ -531,10 +611,27 @@ function Save-WindowImage([string]$Path) {
 # Start
 # ---------------------------------------------------------------------------
 $Ui.LangBox.SelectedIndex = if ((Get-WcLanguage) -eq 'tr') { 0 } else { 1 }
+
+foreach ($day in 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday') {
+    $item = New-Object Windows.Controls.ComboBoxItem
+    $item.Tag = $day
+    [void]$Ui.DayBox.Items.Add($item)
+    if ($day -eq $Settings.ScheduleDay) { $Ui.DayBox.SelectedItem = $item }
+}
+$times = @(0..23 | ForEach-Object { '{0:D2}:00' -f $_ })
+if ($times -notcontains $Settings.ScheduleTime) { $times = @($times + $Settings.ScheduleTime | Sort-Object) }
+foreach ($time in $times) {
+    $item = New-Object Windows.Controls.ComboBoxItem
+    $item.Tag = $time
+    $item.Content = $time
+    [void]$Ui.TimeBox.Items.Add($item)
+    if ($time -eq $Settings.ScheduleTime) { $Ui.TimeBox.SelectedItem = $item }
+}
 $Weekly = $false
 try { $Weekly = Get-WcSchedule } catch { $null = $_ }
 $Ui.WeeklyBox.IsChecked = $Weekly
 Update-View
+$State.Init = $false
 
 if ($SelfTest) {
     foreach ($lang in 'en', 'tr') {
