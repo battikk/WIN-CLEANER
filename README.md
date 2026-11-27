@@ -8,14 +8,16 @@
 - **No internet access, no telemetry.** The script never connects anywhere. CI fails if a network command is ever added.
 - **Scan first, delete only after you confirm.** You see how much each area uses before anything is removed.
 
-> Status: early version. A windowed interface is on the way (see [Roadmap](#roadmap)).
-
 ## Usage
 
 1. Download the latest zip from [Releases](../../releases) and extract it.
-2. Double-click `WinCleaner.bat` and accept the administrator prompt.
-3. Review the table of areas and sizes.
-4. Type `Y` to clean, or `N` to exit without deleting anything.
+2. Double-click `WinCleaner.bat` and accept the administrator prompt. The WinCleaner window opens.
+3. Press **Scan**. Nothing is deleted while scanning.
+4. Untick any area you want to keep, then press **Clean** and confirm.
+
+The window follows your Windows light or dark theme. Tick **Weekly automatic cleanup** to run it every Sunday with the same choices.
+
+Prefer the console? Use `WinCleaner-Console.bat`: it shows a table and asks `Y/N` before cleaning.
 
 The language follows your Windows display language (Turkish or English).
 
@@ -85,7 +87,7 @@ Windows 10 or 11 with the built-in Windows PowerShell 5.1. Nothing to install.
 - [x] More areas: Brave, Opera, Vivaldi, Discord, Teams, GPU caches and installer leftovers, Windows logs
 - [x] Optional weekly automatic cleanup
 - [x] Advanced section (off by default)
-- [ ] Windowed interface with checkboxes, progress bar, light and dark theme
+- [x] Windowed interface with checkboxes, progress bar, light and dark theme
 
 ## License
 
