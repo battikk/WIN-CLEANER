@@ -190,9 +190,9 @@ $Palette = if ($LightTheme) {
 } else {
     @{ Bg = '#1C1C1C'; Card = '#272727'; Fg = '#F3F4F6'; Muted = '#A1A1AA'; Accent = '#3B82F6'; Line = '#3A3A3A' }
 }
+$BrushConverter = New-Object Windows.Media.BrushConverter
 foreach ($key in $Palette.Keys) {
-    $color = [Windows.Media.ColorConverter]::ConvertFromString($Palette[$key])
-    $Window.Resources[$key] = New-Object Windows.Media.SolidColorBrush $color
+    $Window.Resources[$key] = [Windows.Media.Brush]$BrushConverter.ConvertFromString($Palette[$key])
 }
 
 # ---------------------------------------------------------------------------
