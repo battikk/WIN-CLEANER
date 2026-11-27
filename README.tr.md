@@ -8,7 +8,7 @@
 - **İnternet erişimi yok, veri toplama yok.** Script hiçbir yere bağlanmaz. Koda bir ağ komutu eklenirse otomatik kontrol hata verir.
 - **Önce tarar, onay vermeden silmez.** Hiçbir şey silinmeden önce her alanın ne kadar yer kapladığını görürsün.
 
-> Durum: erken sürüm. İngilizce dil, pencereli arayüz ve yeni temizlik alanları yolda (bkz. [Yol haritası](#yol-haritası)).
+> Durum: erken sürüm. Pencereli arayüz yolda (bkz. [Yol haritası](#yol-haritası)).
 
 ## Kullanım
 
@@ -17,8 +17,24 @@
 3. Alanların ve boyutların listelendiği tabloyu incele.
 4. Temizlemek için `E`, hiçbir şey silmeden çıkmak için `H` yaz.
 
-Sadece tarama: `.\WinCleaner.ps1 -Tara`
-Onay sormadan temizlik (zamanlanmış görev için): `.\WinCleaner.ps1 -Evet`
+Dil, Windows'un görüntü diline göre seçilir (Türkçe ya da İngilizce).
+
+### Komut satırı seçenekleri
+
+| Seçenek | Ne yapar |
+|---|---|
+| `-Tara` (`-Scan`) | Sadece tarar, hiçbir şey silmez |
+| `-Evet` (`-Yes`) | Onay sormadan temizler |
+| `-Advanced` | Gelişmiş alanları da çalıştırır (Windows bileşen deposu temizliği, uzun sürer) |
+| `-Language tr` / `-Language en` | Dili zorla seçer |
+| `-InstallSchedule` | Haftalık temizlik ekler: her Pazar 12:00 (bilgisayar kapalıysa ilk açılışta) |
+| `-RemoveSchedule` | Haftalık temizliği kaldırır |
+
+Örnek: `.\WinCleaner.ps1 -Tara`
+
+### Ayarlar
+
+Alanları kapatmak ya da varsayılanları değiştirmek için `settings.example.json` dosyasını `settings.json` adıyla kopyala. Alan kimlikleri `src/WinCleaner.Core.psm1` dosyasında yazar.
 
 ## Neler temizlenir
 
@@ -29,9 +45,14 @@ Onay sormadan temizlik (zamanlanmış görev için): `.\WinCleaner.ps1 -Evet`
 | Teslim İyileştirme önbelleği | Önce Windows komutuyla, kalanlar servis durdurularak silinir |
 | Küçük resim ve simge önbelleği | Windows gerektiğinde yeniden oluşturur |
 | DirectX gölgelendirici önbelleği | Oyunlar gerektiğinde yeniden oluşturur |
-| Edge, Chrome, Firefox önbellekleri | Tarayıcı açıksa atlanır |
+| Ekran kartı gölgelendirici önbelleği (NVIDIA, AMD) | Sürücü gerektiğinde yeniden oluşturur |
+| Ekran kartı sürücü kurulum artıkları | `C:\NVIDIA`, `C:\AMD` ve NVIDIA indirme klasörünün içi |
+| Edge, Chrome, Brave, Vivaldi, Opera, Firefox önbellekleri | Tarayıcı açıksa atlanır |
+| Discord ve Microsoft Teams önbellekleri | Uygulama açıksa atlanır |
 | Çökme dökümleri ve hata raporları | |
+| Eski Windows günlük dosyaları | Son 7 günün günlükleri korunur |
 | Geri Dönüşüm Kutusu | Geri alınamaz |
+| *Gelişmiş:* Windows bileşen deposu | `DISM /StartComponentCleanup` çalıştırır, sadece `-Advanced` ile |
 
 ## Asla dokunulmayanlar
 
@@ -42,7 +63,7 @@ Belgeler, İndirilenler, Masaüstü, şifreler, çerezler, tarayıcı geçmişi,
 - Kullanımdaki dosyalar zorla silinmez, atlanır.
 - Junction ve sembolik bağlantıların içine girilmez, hedef klasörlerin dışına çıkılamaz.
 - Sürücü kökleri ve profil klasörleri sabit bir yasak listesinde.
-- Her temizlik script'in yanındaki `temizlik-log.txt` dosyasına kaydedilir.
+- Her temizlik script'in yanındaki `WinCleaner.log` dosyasına kaydedilir.
 
 ## İndirdiğin dosyayı doğrula
 
@@ -60,11 +81,11 @@ Windows 10 veya 11 ve içinde hazır gelen Windows PowerShell 5.1. Ek kurulum ge
 
 ## Yol haritası
 
-- Türkçe ve İngilizce arayüz
-- Onay kutuları, ilerleme çubuğu, açık/koyu tema ile pencereli arayüz
-- Yeni alanlar: Brave, Opera, Vivaldi, Discord, Teams, Spotify, ekran kartı sürücü artıkları, Windows günlükleri
-- İsteğe bağlı haftalık otomatik temizlik
-- Gelişmiş bölüm (varsayılan kapalı): bileşen deposu temizliği gibi ağır işlemler
+- [x] Türkçe ve İngilizce arayüz
+- [x] Yeni alanlar: Brave, Opera, Vivaldi, Discord, Teams, ekran kartı önbellekleri ve kurulum artıkları, Windows günlükleri
+- [x] İsteğe bağlı haftalık otomatik temizlik
+- [x] Gelişmiş bölüm (varsayılan kapalı)
+- [ ] Onay kutuları, ilerleme çubuğu, açık/koyu tema ile pencereli arayüz
 
 ## Lisans
 
